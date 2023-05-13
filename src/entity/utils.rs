@@ -1,7 +1,4 @@
-use macroquad::{
-    prelude::{Rect, PURPLE},
-    shapes::draw_rectangle,
-};
+use macroquad::prelude::Rect;
 
 pub enum Side {
     TOP,
