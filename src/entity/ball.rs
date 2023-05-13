@@ -6,10 +6,12 @@ use crate::entity::enemy::Enemy;
 use crate::entity::padle::Padle;
 use crate::entity::vector::Vector;
 
+use super::utils;
+
 //BALL CONSTS
 pub const BALL_SIZE: f32 = 15f32;
 const BALL_SPEED: f32 = 500f32;
-const THRESHOLD: f32 = 0.4;
+const BALL_THRESHOLD: f32 = 0.4;
 
 // WINDOW CONST
 const WINDOW: (f32, f32) = (600.0, 400.0);
@@ -41,41 +43,42 @@ impl Ball {
         let random_x: f32 = rng.gen_range(0.0..1.0);
         let random_y: f32 = rng.gen_range(0.0..1.0);
 
-        if random_x >= THRESHOLD {
+        if random_x >= BALL_THRESHOLD {
             self.velocity.x = 1.0;
         } else {
             self.velocity.x = -1.0;
         }
 
-        if random_y >= THRESHOLD {
+        if random_y >= BALL_THRESHOLD {
             self.velocity.y = 1.0;
         } else {
             self.velocity.y = -1.0;
         }
-        self.velocity.y = 1.0;
-        self.velocity.x = 1.0;
         self.launched = true;
     }
 
     pub fn update(&mut self, player: &mut Padle, enemy: &mut Enemy, dt: f32) {
         let player_rect = player.to_rect();
         let enemy_rect = enemy.to_rect();
-        if self.collides(player_rect) {
-            self.velocity.x *= -1.0;
-            if self.position.y >= player_rect.y + player_rect.h
-                || player_rect.y >= self.position.y + BALL_SIZE
-            {
-                self.velocity.y *= -1.0;
-            }
+
+        let ball_rect = &self.to_rect();
+        let side_player = utils::collides(&player_rect, ball_rect);
+        let side_enemy = utils::collides(&enemy_rect, ball_rect);
+
+        match side_player {
+            utils::Side::TOP => self.velocity.y = -1.0,
+            utils::Side::BOTTOM => self.velocity.y = 1.0,
+            utils::Side::RIGHT => self.velocity.x = 1.0,
+            utils::Side::LEFT => (),
+            utils::Side::NONE => (),
         }
 
-        if self.collides(enemy_rect) {
-            self.velocity.x *= -1.0;
-            if self.position.y >= enemy_rect.y + enemy_rect.h
-                || enemy_rect.y >= self.position.y + BALL_SIZE
-            {
-                self.velocity.y *= -1.0;
-            }
+        match side_enemy {
+            utils::Side::TOP => self.velocity.y = -1.0,
+            utils::Side::BOTTOM => self.velocity.y = 1.0,
+            utils::Side::LEFT => self.velocity.x = -1.0,
+            utils::Side::RIGHT => (),
+            utils::Side::NONE => (),
         }
 
         if self.position.y <= 0.0 {
@@ -101,13 +104,7 @@ impl Ball {
         );
     }
 
-    fn collides(&mut self, rect: Rect) -> bool {
-        let overflow_x = self.position.x + BALL_SIZE >= rect.x && self.position.x <= rect.x
-            || rect.x + rect.w >= self.position.x && rect.x <= self.position.x;
-
-        let overflow_y = self.position.y + BALL_SIZE >= rect.y && self.position.y <= rect.y
-            || rect.y + rect.h >= self.position.y && rect.y <= self.position.y;
-
-        return overflow_x && overflow_y;
+    fn to_rect(&self) -> Rect {
+        Rect::new(self.position.x, self.position.y, BALL_SIZE, BALL_SIZE)
     }
 }
